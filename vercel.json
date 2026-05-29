@@ -1,4 +1,7 @@
 {
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "framework": null,
   "functions": {
     "api/parse-resume.js": { "maxDuration": 60 },
     "api/generate-profile.js": { "maxDuration": 60 },
@@ -9,7 +12,10 @@
     "api/admin/users.js": { "maxDuration": 10 },
     "api/admin/posts.js": { "maxDuration": 10 },
     "api/admin/stats.js": { "maxDuration": 10 },
-    "api/cron/daily-posts.js": { "maxDuration": 60 }
+    "api/cron/daily-posts.js": { "maxDuration": 60 },
+    "api/stripe/checkout.js": { "maxDuration": 30 },
+    "api/stripe/portal.js": { "maxDuration": 30 },
+    "api/webhooks/stripe.js": { "maxDuration": 30 }
   },
   "crons": [
     {
