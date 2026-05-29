@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "Vite Frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173
+    },
+    {
+      "name": "Express Backend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "server"],
+      "port": 3000
+    },
+    {
+      "name": "Next.js Dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "next:dev"],
+      "port": 3000
+    }
+  ]
+}
