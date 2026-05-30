@@ -221,6 +221,11 @@ export default function AuthPage() {
     if (data.user) {
       await ensureProfileWithEmail(data.user.id, data.user.email ?? email.trim());
     }
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+    setFullName("");
+    setMode("signin");
     setMessage({
       type: "success",
       text: "Check your email for the confirmation link, or sign in if already confirmed.",
@@ -378,7 +383,8 @@ export default function AuthPage() {
               <div className="flex rounded-xl bg-gray-200/80 p-1 mb-6">
                 <button
                   type="button"
-                  onClick={() => { setMode("signin"); clearMessage(); }}
+                  onClick={() => { setMode("signin"); setEmail(""); setPassword(""); setConfirmPassword(""); setFullName(""); clearMessage(); }}
+
                   className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     mode === "signin"
                       ? "bg-white text-gray-900 shadow-sm border-2 border-blue-600"
@@ -389,7 +395,8 @@ export default function AuthPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => { setMode("signup"); clearMessage(); }}
+                  onClick={() => { setMode("signup"); setEmail(""); setPassword(""); setConfirmPassword(""); setFullName(""); clearMessage(); }}
+
                   className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                     mode === "signup"
                       ? "bg-white text-gray-900 shadow-sm border-2 border-blue-600"
