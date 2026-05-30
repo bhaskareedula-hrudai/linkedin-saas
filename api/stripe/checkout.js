@@ -48,13 +48,7 @@ module.exports = async function handler(req, res) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.headers.origin ?? 'https://linkedin-saas-zwfq.vercel.app';
 
     // Route to profile setup on first payment, dashboard if profile already complete
-    const { data: profileData } = await supabase
-      .from('profiles')
-      .select('onboarding_completed')
-      .eq('user_id', userId)
-      .maybeSingle();
-    const profileComplete = profileData?.onboarding_completed === true;
-    const successPath = profileComplete ? '/#/app/dashboard' : '/#/app/profile-setup';
+     
 // ADD this block before the session creation:
 const { data: profileData } = await supabase
   .from('profiles')
