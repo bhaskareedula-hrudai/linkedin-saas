@@ -46,13 +46,23 @@ module.exports = async function handler(req, res) {
         .eq('user_id', userId);
     }
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.headers.origin ?? 'https://linkedin-saas-zwfq.vercel.app';
+
+    // Route to profile setup on first payment, dashboard if profile already complete
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('onboarding_completed')
+      .eq('user_id', userId)
+      .maybeSingle();
+    const profileComplete = profileData?.onboarding_completed === true;
+    const successPath = profileComplete ? '/#/app/dashboard' : '/#/app/profile-setup';
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
-      success_url: `${baseUrl}/app/dashboard?payment=success&plan=${planId}`,
-      cancel_url: `${baseUrl}/checkout/${planId}`,
+      success_url: `${baseUrl}${successPath}`,
+      cancel_url: `${baseUrl}/#/checkout/${planId}`,
       metadata: { supabase_user_id: userId, plan_id: planId },
       subscription_data: { metadata: { supabase_user_id: userId, plan_id: planId } },
       allow_promotion_codes: true,

@@ -1,13 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getUserHasSubscription } from '../lib/api';
+import { getSubscriptionStatus } from '../lib/api';
 
 type SubscriptionGuardProps = {
   children: React.ReactNode;
 };
-
-/** When CHECKOUT_DISABLED is true, subscription check is bypassed (no orders table). Re-enable for real payments. */
-const CHECKOUT_DISABLED = true;
 
 /** Redirects to /pricing if user does not have an active subscription; otherwise renders children. */
 export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }) => {
@@ -20,16 +17,10 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
     let cancelled = false;
 
     const checkSubscription = async () => {
-      if (CHECKOUT_DISABLED) {
-        if (cancelled) return;
-        initialCheckDone.current = true;
-        setAllowed(true);
-        setLoading(false);
-        return;
-      }
-      const hasSubscription = await getUserHasSubscription();
+      const subStatus = await getSubscriptionStatus();
       if (cancelled) return;
       initialCheckDone.current = true;
+      const hasSubscription = subStatus.status === 'active' || subStatus.status === 'trialing';
       setAllowed(hasSubscription);
       setLoading(false);
     };

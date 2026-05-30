@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { supabase } from '../lib/supabase';
-import { getSupabaseSettings } from '../lib/api';
+import { getSupabaseSettings, getSubscriptionStatus } from '../lib/api';
 import { isProfileComplete } from '../lib/profileCompletion';
 import { PLANS } from '../constants';
 
@@ -99,7 +99,19 @@ export const HomePage: React.FC = () => {
       navigate('/app/dashboard');
     }
   };
-
+const handleDashboardClick = async () => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.id) {
+    navigate('/auth');
+    return;
+  }
+  const subStatus = await getSubscriptionStatus();
+  if (subStatus.status === 'active' || subStatus.status === 'trialing') {
+    navigate('/app/dashboard');
+  } else {
+    navigate('/pricing');
+  }
+};
   const scrollToPricing = () => {
     document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -118,7 +130,7 @@ export const HomePage: React.FC = () => {
           <div className="flex items-center gap-4">
             {isLoggedIn ? (
               <>
-                <Button variant="ghost" onClick={() => navigate('/app/dashboard')}>
+                <Button variant="ghost" onClick={handleDashboardClick}>
                   Dashboard
                 </Button>
                 <Button variant="outline" onClick={handleLogout}>

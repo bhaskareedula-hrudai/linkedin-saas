@@ -4,7 +4,7 @@ import { Mail, Lock, User, Loader2, Plane, MapPin, Compass, Eye, EyeOff } from "
 import { Button } from "../components/ui/Button";
 import { getEmailConfirmRedirectTo, getPasswordResetRedirectTo, getOAuthRedirectTo, supabase } from "../lib/supabase";
 import { getSupabaseSettings } from "../lib/api";
-import { isProfileComplete } from "../lib/profileCompletion";
+//import { isProfileComplete } from "../lib/profileCompletion";
 
 type AuthMode = "signin" | "signup";
 
@@ -32,7 +32,7 @@ export default function AuthPage() {
   const getRedirectAfterAuth = async (userId: string): Promise<string> => {
     const settings = await getSupabaseSettings(userId);
     if (settings.auth_role === 'admin') return '/admin/dashboard';
-    return isProfileComplete(settings) ? '/app/dashboard' : '/app/profile-setup';
+    return '/';
   };
 
   // Safety timeout: if PKCE exchange takes >8s, stop showing spinner so user can sign in manually
