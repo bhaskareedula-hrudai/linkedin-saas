@@ -16,11 +16,8 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
 
   useEffect(() => {
     let cancelled = false;
-
     const checkSubscription = async () => {
       const sessionId = searchParams.get('session_id');
-
-      // Coming back from Stripe — verify directly with Stripe before webhook arrives
       if (sessionId) {
         try {
           const { data: { user } } = await supabase.auth.getUser();
@@ -44,8 +41,6 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
           console.error('Session verification failed:', e);
         }
       }
-
-      // Normal DB subscription check
       const subStatus = await getSubscriptionStatus();
       if (cancelled) return;
       initialCheckDone.current = true;
@@ -53,7 +48,6 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
       setAllowed(hasSubscription);
       setLoading(false);
     };
-
     checkSubscription();
   }, [searchParams]);
 
