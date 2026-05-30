@@ -55,13 +55,20 @@ module.exports = async function handler(req, res) {
       .maybeSingle();
     const profileComplete = profileData?.onboarding_completed === true;
     const successPath = profileComplete ? '/#/app/dashboard' : '/#/app/profile-setup';
-
+// ADD this block before the session creation:
+const { data: profileData } = await supabase
+  .from('profiles')
+  .select('onboarding_completed')
+  .eq('user_id', userId)
+  .maybeSingle();
+const profileComplete = profileData?.onboarding_completed === true;
+const successPath = profileComplete ? '/#/app/dashboard' : '/#/app/profile-setup';
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
-      success_url: `${baseUrl}${successPath}`,
+      success_url: `${baseUrl}${successPath}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/#/checkout/${planId}`,
       metadata: { supabase_user_id: userId, plan_id: planId },
       subscription_data: { metadata: { supabase_user_id: userId, plan_id: planId } },

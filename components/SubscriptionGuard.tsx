@@ -1,14 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getSubscriptionStatus } from '../lib/api';
+import { supabase } from '../lib/supabase';
 
 type SubscriptionGuardProps = {
   children: React.ReactNode;
 };
 
-/** Redirects to /pricing if user does not have an active subscription; otherwise renders children. */
 export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [allowed, setAllowed] = useState(false);
   const initialCheckDone = useRef(false);
@@ -17,6 +18,34 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
     let cancelled = false;
 
     const checkSubscription = async () => {
+      const sessionId = searchParams.get('session_id');
+
+      // Coming back from Stripe — verify directly with Stripe before webhook arrives
+      if (sessionId) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user?.id) {
+            const res = await fetch('/api/stripe/verify-session', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId, userId: user.id }),
+            });
+            const data = await res.json();
+            if (data.status === 'active') {
+              if (!cancelled) {
+                initialCheckDone.current = true;
+                setAllowed(true);
+                setLoading(false);
+              }
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Session verification failed:', e);
+        }
+      }
+
+      // Normal DB subscription check
       const subStatus = await getSubscriptionStatus();
       if (cancelled) return;
       initialCheckDone.current = true;
@@ -26,7 +55,7 @@ export const SubscriptionGuard: React.FC<SubscriptionGuardProps> = ({ children }
     };
 
     checkSubscription();
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     if (!loading && !allowed) {

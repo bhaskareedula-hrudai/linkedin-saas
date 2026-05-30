@@ -4,7 +4,6 @@ import { Mail, Lock, User, Loader2, Plane, MapPin, Compass, Eye, EyeOff } from "
 import { Button } from "../components/ui/Button";
 import { getEmailConfirmRedirectTo, getPasswordResetRedirectTo, getOAuthRedirectTo, supabase } from "../lib/supabase";
 import { getSupabaseSettings } from "../lib/api";
-//import { isProfileComplete } from "../lib/profileCompletion";
 
 type AuthMode = "signin" | "signup";
 
