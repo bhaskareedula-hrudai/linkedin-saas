@@ -8,7 +8,8 @@ import { Button } from '../components/ui/Button';
 import { getPosts, startAgent, stopAgent, getAgentStatus, runPost, getCurrentUserDisplayInfo, getSupabaseSettings } from '../lib/api';
 import { supabase } from '../lib/supabase';
 import { PLANS } from '../constants';
-
+// Add right after the existing imports:
+const PLAN_WEEKLY_LIMITS: Record<string, number> = { dev: 99, starter: 3, professional: 5, 'brand-pro': 7 };
 export const UserDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<any[]>([]);
@@ -21,6 +22,7 @@ export const UserDashboard: React.FC = () => {
   const [publishState, setPublishState] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [publishMessage, setPublishMessage] = useState('');
   const [linkedinConnected, setLinkedinConnected] = useState(false);
+  const [weeklyPostCount, setWeeklyPostCount] = useState(0);  // ← ADD THIS
 
   /**
    * Debounce / dedup guards for the Publish button.
@@ -59,6 +61,14 @@ export const UserDashboard: React.FC = () => {
         }, []);
 
       setJobs(uniquePosted);
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const { count } = await supabase
+        .from('posts')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', authUserId)
+        .eq('status', 'published')
+        .gte('posted_at', weekAgo);
+      setWeeklyPostCount(count ?? 0);
       const status = await getAgentStatus();
       setIsAgentActive(status.status === 'running');
     } catch (e) {
@@ -258,7 +268,7 @@ export const UserDashboard: React.FC = () => {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="flex items-center p-6 border-green-50">
             <div className="w-12 h-12 rounded-xl bg-green-100 flex items-center justify-center mr-4">
               <CheckCircle className="w-6 h-6 text-green-600" />
@@ -266,6 +276,23 @@ export const UserDashboard: React.FC = () => {
             <div>
               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Total Published</p>
               <p className="text-2xl font-bold text-gray-900">{jobs.length}</p>
+            </div>
+          </Card>
+          <Card className="flex items-center p-6 border-indigo-50">
+            <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center mr-4">
+              <RefreshCw className="w-6 h-6 text-indigo-600" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Posts This Week</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {weeklyPostCount}
+                <span className="text-base font-normal text-gray-400">
+                  /{PLAN_WEEKLY_LIMITS[planId] ?? 3}
+                </span>
+              </p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {Math.max(0, (PLAN_WEEKLY_LIMITS[planId] ?? 3) - weeklyPostCount)} remaining
+              </p>
             </div>
           </Card>
           <Card className="flex items-center p-6 border-yellow-50">

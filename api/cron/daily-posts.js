@@ -37,7 +37,7 @@ module.exports = async function handler(req, res) {
   // Fetch all active users with their posts_per_day setting
   const { data: users, error } = await admin
     .from('profiles')
-    .select('user_id, posts_per_day')
+    .select('user_id, posts_per_day, selected_plan')
     .eq('active', true);
 
   if (error) {
@@ -51,9 +51,12 @@ module.exports = async function handler(req, res) {
 
   const results = [];
 
-  for (const { user_id, posts_per_day } of users) {
-    // Publish posts_per_day posts for each active user
-    const count = Math.min(Math.max(Number(posts_per_day) || 1, 1), 3);
+  const PLAN_DAILY_MAX = { dev: 3, starter: 1, professional: 1, 'brand-pro': 2 };
+
+  for (const { user_id, posts_per_day, selected_plan } of users) {
+    const planKey = selected_plan ? String(selected_plan).trim().toLowerCase() : 'starter';
+    const dailyMax = PLAN_DAILY_MAX[planKey] ?? 1;
+    const count = Math.min(Math.max(Number(posts_per_day) || 1, 1), dailyMax);
     for (let i = 0; i < count; i++) {
       try {
         const result = await runAutomation(user_id);

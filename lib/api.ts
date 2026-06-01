@@ -358,6 +358,7 @@ export interface UpdateProfileData {
   name?: string;
   email?: string;
   selected_plan?: string;
+  tone?: string;  
   resume_data?: string | object | null;
   resume_url?: string | null;
   linkedin_connected?: boolean;
@@ -560,6 +561,9 @@ export const updateProfile = async (userId: string, data: UpdateProfileData) => 
   if (data.onboarding_completed !== undefined) record.onboarding_completed = data.onboarding_completed;
   if (data.name !== undefined && data.name.trim() !== '') record.name = data.name.trim();
   if (data.selected_plan !== undefined) record.selected_plan = data.selected_plan;
+  if (data.tone !== undefined && typeof data.tone === 'string' && data.tone.trim() !== '') {
+    record.tone = data.tone.trim();
+  }
   if (data.resume_data !== undefined) {
     record.resume_data = normalizeResumeDataForSupabase(data.resume_data);
   }
@@ -699,6 +703,7 @@ export const getSupabaseSettings = async (userId: string) => {
     posts_per_day: (data as any).posts_per_day ?? 1,
     post_times: (data as any).post_times ?? ['09'],
     timezone: (data as any).timezone ?? 'India',
+    tone: (data as any).tone ?? '',
   };
 };
 
@@ -1044,6 +1049,7 @@ export const saveSettings = async (settings: any) => {
     ...(skills.length > 0 ? { skills } : {}),
     ...(topics.length > 0 ? { topics } : {}),
     ...(settings.portfolio_url ? { portfolio_url: settings.portfolio_url } : {}),
+    ...(settings.tone && String(settings.tone).trim() ? { tone: String(settings.tone).trim() } : {}),
     email: session?.user?.email ?? undefined,
   });
 };

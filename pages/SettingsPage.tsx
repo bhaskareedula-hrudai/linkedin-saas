@@ -570,20 +570,48 @@ export const SettingsPage: React.FC = () => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Content Topics (Comma Separated)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Content Topics (Comma Separated)
+                  {subscription?.planId === 'starter' && (
+                    <span className="ml-2 text-xs font-normal text-amber-600">— Starter: only 1st topic is used</span>
+                  )}
+                </label>
                 <input
                   type="text"
                   className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-indigo-500 outline-none text-sm"
                   value={formData.topics?.join(', ')}
                   onChange={(e) => setFormData({ ...formData, topics: e.target.value.split(',').map(s => s.trim()) })}
+                  placeholder={subscription?.planId === 'starter' ? 'Enter 1 topic (Starter plan)' : 'e.g. Cloud Architecture, DevOps, Career Growth'}
                 />
+                {subscription?.planId === 'starter' && (formData.topics?.filter(Boolean).length ?? 0) > 1 && (
+                  <p className="mt-1 text-xs text-amber-600">
+                    Only your first topic will be used. Upgrade to Professional to use multiple topics.
+                  </p>
+                )}
               </div>
+              {(subscription?.planId === 'professional' || subscription?.planId === 'brand-pro' || subscription?.planId === 'dev') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Writing Tone
+                    {subscription?.planId === 'brand-pro' && (
+                      <span className="ml-2 text-xs text-indigo-500 font-normal">— Tone Memory (Brand Pro)</span>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-indigo-500 outline-none text-sm"
+                    value={formData.tone ?? ''}
+                    onChange={(e) => setFormData({ ...formData, tone: e.target.value })}
+                    placeholder="e.g. Conversational and inspiring, Bold and data-driven..."
+                  />
+                  <p className="mt-1 text-xs text-gray-400">This tone is applied to every AI-generated post.</p>
+                </div>
+              )}
             </div>
           </Card>
 
           {/* ── Post Schedule ───────────────────────────────────────── */}
-          <Card title="Post Schedule" description="Choose your timezone and set how many posts per day to publish automatically.">
-            <div className="space-y-5">
+ <Card title="Post Schedule" description={`Choose your timezone and set how many posts per day to publish automatically. ${subscription?.planId === 'starter' ? '(Starter: fixed 1 post/day, up to 3/week)' : subscription?.planId === 'professional' ? '(Professional: 1 post/day, up to 5/week)' : subscription?.planId === 'brand-pro' ? '(Brand Pro: up to 2 posts/day, up to 7/week)' : ''}`}>            <div className="space-y-5">
 
               {/* Timezone selector */}
               <div>
@@ -618,13 +646,16 @@ export const SettingsPage: React.FC = () => {
                   Posts per day
                 </label>
                 <div className="flex gap-3">
-                  {[1].map(n => (
+                  {(subscription?.planId === 'brand-pro' || subscription?.planId === 'dev'
+                    ? [1, 2]
+                    : [1]
+                  ).map(n => (
                     <button
                       key={n}
                       type="button"
                       onClick={() => {
                         setPostsPerDay(n);
-                        setLocalPostTimes(['09']);
+                        setLocalPostTimes(Array.from({ length: n }, (_, i) => String(9 + i * 6).padStart(2, '0')));
                       }}
                       className={`w-14 h-14 rounded-xl text-lg font-bold border-2 transition-all ${
                         postsPerDay === n
@@ -636,6 +667,9 @@ export const SettingsPage: React.FC = () => {
                     </button>
                   ))}
                 </div>
+                {subscription?.planId === 'starter' && (
+                  <p className="mt-1 text-xs text-amber-600">Starter plan: fixed at 1 post per day (max 3/week).</p>
+                )}
               </div>
 
               {/* Time slots */}
