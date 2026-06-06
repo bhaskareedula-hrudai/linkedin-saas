@@ -16,18 +16,29 @@ module.exports = async function handler(req, res) {
     return res.status(500).json({ error: 'SUPABASE_SERVICE_ROLE_KEY is not configured.' });
   }
 
+  const { type } = req.query;
+
   try {
     const supabase = getAdminSupabase();
+
+    if (type === 'posts') {
+      const { data, error } = await supabase
+        .from('posts')
+        .select('id, user_id, content, post_url, created_at, updated_at, post_id, posted_at, status')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return res.status(200).json({ posts: data ?? [] });
+    }
+
     const { data, error } = await supabase
-      .from('posts')
-      .select('id, user_id, content, post_url, created_at, updated_at, post_id, posted_at, status')
+      .from('profiles')
+      .select('user_id, email, auth_roles, created_at, selected_plan, subscription_status, stripe_subscription_id')
       .order('created_at', { ascending: false });
-
     if (error) throw error;
+    return res.status(200).json({ users: data ?? [] });
 
-    return res.status(200).json({ posts: data ?? [] });
   } catch (err) {
-    console.error('Admin posts error:', err);
-    return res.status(500).json({ error: err.message ?? 'Failed to fetch posts' });
+    console.error('Admin data error:', err);
+    return res.status(500).json({ error: err.message ?? 'Failed to fetch data' });
   }
 };

@@ -579,7 +579,7 @@ export const AdminDashboard: React.FC = () => {
       console.log('[AdminDashboard] Fetching from /api/admin/users and /api/admin/posts ...');
 
       const [usersJson, postsJson] = await Promise.all([
-adminFetch('/api/admin/users') as Promise<{ users: { user_id: string; email?: string; auth_roles?: string; created_at?: string; selected_plan?: string; subscription_status?: string }[] }>,        adminFetch('/api/admin/posts') as Promise<{ posts: PublishedPost[] }>,
+adminFetch('/api/admin/data') as Promise<{ users: { user_id: string; email?: string; auth_roles?: string; created_at?: string; selected_plan?: string; subscription_status?: string }[] }>,        adminFetch('/api/admin/data?type=posts') as Promise<{ posts: PublishedPost[] }>,
       ]);
 
       const profiles = usersJson.users ?? [];
@@ -701,7 +701,7 @@ adminFetch('/api/admin/users') as Promise<{ users: { user_id: string; email?: st
     setPostsLoading(true);
     setPostsError(null);
     try {
-      const json = await adminFetch('/api/admin/posts') as { posts: PublishedPost[] };
+      const json = await adminFetch('/api/admin/data?type=posts') as { posts: PublishedPost[] };
       setPublishedPosts(json.posts ?? []);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
