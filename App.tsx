@@ -29,6 +29,16 @@ function App() {
     });
   }, []);
 
+  // Stripe billing portal strips # from return URLs, so it lands on /app/settings
+  // (a real path). Vercel serves index.html for /app/* via rewrites, so we redirect
+  // to the correct hash route here before HashRouter renders.
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path.startsWith('/app/')) {
+      window.location.replace('/#' + path + window.location.search);
+    }
+  }, []);
+
   return (
     <HashRouter>
       <DevNavigation />

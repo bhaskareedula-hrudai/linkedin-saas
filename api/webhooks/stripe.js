@@ -72,9 +72,18 @@ module.exports = async function handler(req, res) {
         const sub = event.data.object;
         const userId = sub.metadata?.supabase_user_id;
         if (!userId) break;
+        // Map price ID → plan name so selected_plan updates on upgrade/downgrade
+        const priceId = sub.items?.data?.[0]?.price?.id;
+        const PRICE_TO_PLAN = {
+          [process.env.STRIPE_PRICE_STARTER || '']: 'starter',
+          [process.env.STRIPE_PRICE_PROFESSIONAL || '']: 'professional',
+          [process.env.STRIPE_PRICE_BRAND_PRO || '']: 'brand-pro',
+        };
+        const newPlan = priceId ? PRICE_TO_PLAN[priceId] : undefined;
         await updateProfile(userId, {
           stripe_subscription_id: sub.id,
           subscription_status: sub.status,
+          ...(newPlan ? { selected_plan: newPlan } : {}),
         });
         break;
       }

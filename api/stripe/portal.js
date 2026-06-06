@@ -38,10 +38,11 @@ module.exports = async function handler(req, res) {
       return res.status(404).json({ error: 'No billing account found for this user' });
     }
 
-    const baseUrl =
+    const baseUrl = (
       process.env.NEXT_PUBLIC_APP_URL ??
       req.headers.origin ??
-      'https://linkedin-saas-zwfq.vercel.app';
+      'https://linkedin-saas-zwfq.vercel.app'
+    ).replace(/\/$/, '');
 
     const stripe = getStripe();
     const portal = await stripe.billingPortal.sessions.create({
