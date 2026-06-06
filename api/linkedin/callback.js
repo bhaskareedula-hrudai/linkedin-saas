@@ -1,30 +1,34 @@
 const { createClient } = require("@supabase/supabase-js");
 
-// Primary redirect URI comes from LINKEDIN_REDIRECT_URI env var (must match LinkedIn Developer Portal EXACTLY).
-// The frontend also embeds the URI it used in the OAuth state param so they always stay in sync.
 const DEFAULT_REDIRECT_URI =
   process.env.LINKEDIN_REDIRECT_URI ||
   "https://linkedin-saas-git-dev-hrudai.vercel.app/api/linkedin/callback";
 
-// FRONTEND_APP_URL can be set in Vercel env vars; falls back to the primary deployment domain.
 const FRONTEND_BASE =
   process.env.FRONTEND_APP_URL ||
   "https://linkedin-saas-git-dev-hrudai.vercel.app";
 
-const ALLOWED_ORIGINS = [
-  "https://linkedin-saas-git-dev-hrudai.vercel.app",
-  "https://linkedin-saas-three.vercel.app",
-  "https://linkedin-theta-seven.vercel.app",
-  "http://localhost:5173",
-  "http://localhost:3000",
-];
+function isAllowedOrigin(origin) {
+  if (!origin || typeof origin !== "string") return false;
+  const STATIC_ORIGINS = [
+    "https://linkedin-saas-git-dev-hrudai.vercel.app",
+    "https://linkedin-saas-three.vercel.app",
+    "https://linkedin-theta-seven.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+  ];
+  if (STATIC_ORIGINS.includes(origin)) return true;
+  if (/^https:\/\/linkedin-saas[\w-]*\.vercel\.app$/.test(origin)) return true;
+  const configured = (process.env.FRONTEND_APP_URL || "").replace(/\/$/, "");
+  if (configured && origin === configured) return true;
+  return false;
+}
 
 function redirect(res, status, url) {
   res.writeHead(status, { Location: url });
   res.end();
 }
 
-// Strip accidental "KEY=value" format from Vercel env var values
 function stripKeyPrefix(raw) {
   const s = (raw || "").trim();
   const eq = s.indexOf("=");
@@ -38,9 +42,10 @@ async function handler(req, res) {
   let appOrigin = FRONTEND_BASE;
   let returnPath = "/app/profile-setup";
 
-  const makeSuccessUrl = () => `${appOrigin}/#${returnPath}?linkedin=connected`;
+  const makeSuccessUrl = () =>
+    `${appOrigin}/#/auth/linkedin/callback?linkedin_connected=true&returnPath=${encodeURIComponent(returnPath)}`;
   const makeErrorUrl = (code = "linkedin_failed", detail = "") =>
-    `${appOrigin}/#/app/profile-setup?linkedin_error=${encodeURIComponent(code)}${detail ? `&msg=${encodeURIComponent(detail)}` : ""}`;
+    `${appOrigin}/#/auth/linkedin/callback?linkedin_error=${encodeURIComponent(code)}${detail ? `&msg=${encodeURIComponent(detail)}` : ""}&returnPath=${encodeURIComponent(returnPath)}`;
 
   try {
     if (req.method !== "GET") {
@@ -68,7 +73,6 @@ async function handler(req, res) {
       return;
     }
 
-    // --- Parse state ---
     let userEmail = null;
     let userId = null;
     let stateRedirectUri = null;
@@ -76,11 +80,10 @@ async function handler(req, res) {
       const decoded = JSON.parse(Buffer.from(state, "base64").toString("utf8"));
       userEmail = (decoded && decoded.email) || null;
       userId = (decoded && decoded.userId) || null;
-      // Frontend embeds the redirect URI it used in the state so token exchange always matches
       stateRedirectUri = (decoded && typeof decoded.redirectUri === "string" && decoded.redirectUri.startsWith("https://"))
         ? decoded.redirectUri : null;
 
-      if (decoded.appOrigin && ALLOWED_ORIGINS.includes(decoded.appOrigin)) {
+      if (decoded.appOrigin && isAllowedOrigin(decoded.appOrigin)) {
         appOrigin = decoded.appOrigin;
       }
       if (decoded.returnPath && decoded.returnPath.startsWith("/")) {
@@ -100,7 +103,6 @@ async function handler(req, res) {
       return;
     }
 
-    // --- Resolve env vars ---
     const supabaseUrl = stripKeyPrefix(
       process.env.SUPABASE_URL ||
       process.env.NEXT_PUBLIC_SUPABASE_URL ||
@@ -126,8 +128,6 @@ async function handler(req, res) {
     const projectId = supabaseUrl.replace("https://", "").split(".")[0];
     console.log("[LinkedIn callback] State — userId:", userId, "email:", userEmail, "project:", projectId);
 
-    // --- Step 1: Verify the user ID against auth.users BEFORE consuming the OAuth code ---
-    // This ensures we use the REAL auth.users.id and prevents FK violations on upsert.
     let resolvedUserId = null;
 
     if (userId && typeof userId === "string" && userId.trim()) {
@@ -151,7 +151,6 @@ async function handler(req, res) {
       }
     }
 
-    // Fallback: look up by email via admin API
     if (!resolvedUserId && userEmail) {
       console.log("[LinkedIn callback] Falling back to email lookup:", userEmail);
       const emailLookup = await fetch(
@@ -175,9 +174,6 @@ async function handler(req, res) {
       return;
     }
 
-    // --- Step 2: Exchange OAuth code for LinkedIn access token ---
-    // Redirect URI priority: (1) embedded in state by frontend, (2) LINKEDIN_REDIRECT_URI env var, (3) hardcoded default
-    // MUST exactly match the URI registered in the LinkedIn Developer Portal.
     const tokenExchangeRedirectUri =
       stateRedirectUri ||
       stripKeyPrefix(process.env.LINKEDIN_REDIRECT_URI || "") ||
@@ -220,7 +216,6 @@ async function handler(req, res) {
 
     console.log("[LinkedIn callback] Access token obtained. Token length:", accessToken.length);
 
-    // --- Step 3: Fetch LinkedIn profile info ---
     let linkedinProfileId = null;
     let linkedinProfileUrl = null;
     try {
@@ -243,7 +238,6 @@ async function handler(req, res) {
       console.warn("[LinkedIn callback] Could not fetch LinkedIn profile info:", profileErr.message);
     }
 
-    // --- Step 4: Upsert profile row using verified user.id ---
     const supabase = createClient(supabaseUrl, serviceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -277,7 +271,6 @@ async function handler(req, res) {
 
     if (saveError) {
       console.error("[LinkedIn callback] Upsert error on project:", projectId, saveError);
-      // FK violation — resolvedUserId verified above, so this shouldn't happen; log it clearly
       if (saveError.code === "23503" || (saveError.message && saveError.message.includes("foreign key"))) {
         console.error("[LinkedIn callback] FK violation despite admin API verification! userId:", resolvedUserId);
         redirect(res, 302, makeErrorUrl("auth_mismatch", "Account mismatch. Please sign out, sign in again, and retry."));
