@@ -1,35 +1,18 @@
 {
-  "buildCommand": "vite build",
-  "outputDirectory": "dist",
+  "version": 2,
+  "buildCommand": "cd frontend && npm install && npm run build && rm -rf node_modules",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "echo 'skip root install'",
   "framework": null,
-  "functions": {
-    "api/parse-resume.js": { "maxDuration": 60 },
-    "api/generate-profile.js": { "maxDuration": 60 },
-    "api/analyze-resume.js": { "maxDuration": 60 },
-    "api/automation/run.js": { "maxDuration": 60 },
-    "api/linkedin/callback.js": { "maxDuration": 30 },
-    "api/linkedin/exchange.js": { "maxDuration": 30 },
-    "api/cron/daily-posts.js": { "maxDuration": 60 },
-    "api/stripe/checkout.js": { "maxDuration": 30 },
-    "api/stripe/portal.js": { "maxDuration": 30 },
-    "api/stripe/verify-session.js": { "maxDuration": 30 },
-    "api/webhooks/stripe.js": { "maxDuration": 30 },
-    "api/admin/data.js": { "maxDuration": 30 }
-  },
-  "crons": [
-    {
-      "path": "/api/cron/daily-posts",
-      "schedule": "0 8 * * *"
-    }
-  ],
   "rewrites": [
-    {
-      "source": "/app/profile-setup",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/app/:path*",
-      "destination": "/index.html"
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/index.py": {
+      "runtime": "@vercel/python@4.3.0",
+      "maxDuration": 30,
+      "includeFiles": "backend/**"
     }
-  ]
+  }
 }
