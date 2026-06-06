@@ -579,8 +579,7 @@ export const AdminDashboard: React.FC = () => {
       console.log('[AdminDashboard] Fetching from /api/admin/users and /api/admin/posts ...');
 
       const [usersJson, postsJson] = await Promise.all([
-        adminFetch('/api/admin/users') as Promise<{ users: { user_id: string; email?: string; auth_roles?: string; created_at?: string }[] }>,
-        adminFetch('/api/admin/posts') as Promise<{ posts: PublishedPost[] }>,
+adminFetch('/api/admin/users') as Promise<{ users: { user_id: string; email?: string; auth_roles?: string; created_at?: string; selected_plan?: string; subscription_status?: string }[] }>,        adminFetch('/api/admin/posts') as Promise<{ posts: PublishedPost[] }>,
       ]);
 
       const profiles = usersJson.users ?? [];
@@ -611,13 +610,33 @@ export const AdminDashboard: React.FC = () => {
         if (error) systemHealth = 'Error';
       } catch { systemHealth = 'Error'; }
 
+            // Plan distribution from selected_plan field
+      const planCounts: Record<string, number> = {};
+      profiles.forEach((p) => {
+        const plan = p.selected_plan ?? 'free';
+        planCounts[plan] = (planCounts[plan] ?? 0) + 1;
+      });
+      const planDistribution = Object.entries(planCounts).map(([name, value]) => ({
+        name: name.charAt(0).toUpperCase() + name.slice(1),
+        value,
+      }));
+
+      // Revenue and subscriptions from active profiles
+      const PLAN_PRICES: Record<string, number> = { starter: 19, professional: 39, 'brand-pro': 79 };
+      const activeProfiles = profiles.filter(
+        (p) => p.subscription_status === 'active' && p.selected_plan && PLAN_PRICES[p.selected_plan]
+      );
+      const totalRevenue = activeProfiles.reduce(
+        (sum, p) => sum + (PLAN_PRICES[p.selected_plan ?? ''] ?? 0), 0
+      );
+
       setOverviewStats({
-        totalRevenue: 0,
+        totalRevenue,
         activeUsers: profiles.length,
         postsGenerated: posts.length,
         systemHealth,
         revenueTrend: Object.entries(revenueByDay).map(([name, v]) => ({ name, ...v })),
-        planDistribution: [],
+        planDistribution,
       });
 
       // ── User Management table ─────────────────────────────────────────────
@@ -630,7 +649,16 @@ export const AdminDashboard: React.FC = () => {
           : '—',
       })));
 
-      setSubscriptions([]);
+      setSubscriptions(activeProfiles.map((p) => ({
+        id: p.user_id,
+        user: p.email ?? p.user_id,
+        amount: PLAN_PRICES[p.selected_plan ?? ''] ?? 0,
+        plan: (p.selected_plan ?? '').charAt(0).toUpperCase() + (p.selected_plan ?? '').slice(1),
+        date: p.created_at
+          ? new Date(p.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+          : '—',
+        status: p.subscription_status === 'active' ? 'Active' : p.subscription_status === 'past_due' ? 'Overdue' : 'Inactive',
+      })));
 
       // ── Agent Logs (derived from posts) ───────────────────────────────────
       setAgentLogs(posts.slice(0, 50).map((p) => {

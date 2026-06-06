@@ -12,7 +12,10 @@
     "api/cron/daily-posts.js": { "maxDuration": 60 },
     "api/stripe/checkout.js": { "maxDuration": 30 },
     "api/stripe/portal.js": { "maxDuration": 30 },
-    "api/webhooks/stripe.js": { "maxDuration": 30 }
+    "api/stripe/verify-session.js": { "maxDuration": 30 },
+    "api/webhooks/stripe.js": { "maxDuration": 30 },
+    "api/admin/users.js": { "maxDuration": 30 },
+    "api/admin/posts.js": { "maxDuration": 30 }
   },
   "crons": [
     {
