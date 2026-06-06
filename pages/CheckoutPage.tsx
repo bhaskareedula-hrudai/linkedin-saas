@@ -39,7 +39,11 @@ export const CheckoutPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ planId: plan.id, userId: user.id, email: user.email }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: any = {};
+      try { data = JSON.parse(text); } catch {
+        throw new Error(`Checkout service unavailable (${res.status}). Please check Stripe environment variables in Vercel and redeploy.`);
+      }
       if (!res.ok || !data.url) {
         throw new Error(data.error ?? 'Failed to create checkout session');
       }
