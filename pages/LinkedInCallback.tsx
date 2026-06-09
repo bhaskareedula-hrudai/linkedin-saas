@@ -47,14 +47,23 @@ export const LinkedInCallback: React.FC = () => {
         if (!cancelled) setStatus('success');
 
         // Wait up to 5 s for the session to surface via auth state change.
+        // Fall back to returnPath (not /auth) — the route's own auth guard
+        // handles re-login if needed, avoiding a redirect loop.
         authTimeout = setTimeout(() => {
           if (!cancelled) {
-            navigate('/auth', { replace: true });
+            navigate(`${returnPath}?linkedin=connected`, { replace: true });
           }
         }, 5000);
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-          if (newSession && !cancelled) {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+          if (cancelled) return;
+          if (newSession) {
+            if (authTimeout) clearTimeout(authTimeout);
+            authSub = null;
+            subscription.unsubscribe();
+            navigate(`${returnPath}?linkedin=connected`, { replace: true });
+          } else if (event === 'INITIAL_SESSION') {
+            // No session — let the destination route handle auth.
             if (authTimeout) clearTimeout(authTimeout);
             authSub = null;
             subscription.unsubscribe();
