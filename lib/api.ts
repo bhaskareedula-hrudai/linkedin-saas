@@ -964,6 +964,10 @@ export const openBillingPortal = async (userId: string): Promise<void> => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ userId }),
   });
+  const contentType = res.headers.get('content-type') ?? '';
+  if (!contentType.includes('application/json')) {
+    throw new Error(`Billing portal unavailable (HTTP ${res.status}). Please try again later.`);
+  }
   const data = await res.json();
   if (data.url) window.location.href = data.url;
   else throw new Error(data.error ?? 'Could not open billing portal');
